@@ -1026,12 +1026,14 @@ void loop() {
       wake();
       beep(1200, 80);   // alert chirp
       // Jump to the approval screen no matter what was open — drawApproval
-      // only runs from drawHUD which only runs in DISP_NORMAL.
+      // only runs from drawHUD which only runs in DISP_NORMAL. Only reset
+      // the renderer if we actually need to switch modes or close an overlay;
+      // a needless characterInvalidate() here was crashing the GIF decoder
+      // mid-frame on Plus2 when a 2nd prompt arrived.
+      bool needReset = (displayMode != DISP_NORMAL) || menuOpen || settingsOpen || resetOpen;
       displayMode = DISP_NORMAL;
       menuOpen = settingsOpen = resetOpen = false;
-      applyDisplayMode();
-      characterInvalidate();
-      if (buddyMode) buddyInvalidate();
+      if (needReset) applyDisplayMode();
     }
   }
 
