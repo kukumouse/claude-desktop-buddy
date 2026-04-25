@@ -44,7 +44,6 @@ unsigned long t = 0;
 bool    menuOpen    = false;
 uint8_t menuSel     = 0;
 uint8_t brightLevel = 4;           // 0..4 → ScreenBreath 20..100
-bool    btnALong    = false;
 
 enum DisplayMode { DISP_NORMAL, DISP_PET, DISP_INFO, DISP_COUNT };
 uint8_t displayMode = DISP_NORMAL;
@@ -938,6 +937,7 @@ void drawHUD() {
 
 void setup() {
   M5.begin();
+  M5.BtnA.setHoldThresh(600);
   M5.Display.setRotation(0);
   M5.Imu.init();
   startBt();
@@ -1052,7 +1052,6 @@ void loop() {
 
   // AXP power button (left side): short-press toggles screen off.
   // Long-press (6s) still powers off the device via AXP hardware.
-  M5.update(); 
   if (M5.BtnPWR.wasClicked()) {
     if (screenOff) {
       wake();
@@ -1062,8 +1061,7 @@ void loop() {
     }
   }
 
-  if (M5.BtnA.pressedFor(600) && !btnALong && !swallowBtnA) {
-    btnALong = true;
+  if (M5.BtnA.wasHold() && !swallowBtnA) {
     beep(800, 60);
     if (resetOpen) { resetOpen = false; }
     else if (settingsOpen) { settingsOpen = false; characterInvalidate(); }
@@ -1074,34 +1072,33 @@ void loop() {
     }
     Serial.println(menuOpen ? "menu open" : "menu close");
   }
-  if (M5.BtnA.wasReleased()) {
-    if (!btnALong && !swallowBtnA) {
-      if (inPrompt) {
-        char cmd[96];
-        snprintf(cmd, sizeof(cmd), "{\"cmd\":\"permission\",\"id\":\"%s\",\"decision\":\"once\"}", tama.promptId);
-        sendCmd(cmd);
-        responseSent = true;
-        uint32_t tookS = (millis() - promptArrivedMs) / 1000;
-        statsOnApproval(tookS);
-        beep(2400, 60);
-        if (tookS < 5) triggerOneShot(P_HEART, 2000);
-      } else if (resetOpen) {
-        beep(1800, 30);
-        resetSel = (resetSel + 1) % RESET_N;
-        resetConfirmIdx = 0xFF;
-      } else if (settingsOpen) {
-        beep(1800, 30);
-        settingsSel = (settingsSel + 1) % SETTINGS_N;
-      } else if (menuOpen) {
-        beep(1800, 30);
-        menuSel = (menuSel + 1) % MENU_N;
-      } else {
-        beep(1800, 30);
-        displayMode = (displayMode + 1) % DISP_COUNT;
-        applyDisplayMode();
-      }
+  if (M5.BtnA.wasClicked() && !swallowBtnA) {
+    if (inPrompt) {
+      char cmd[96];
+      snprintf(cmd, sizeof(cmd), "{\"cmd\":\"permission\",\"id\":\"%s\",\"decision\":\"once\"}", tama.promptId);
+      sendCmd(cmd);
+      responseSent = true;
+      uint32_t tookS = (millis() - promptArrivedMs) / 1000;
+      statsOnApproval(tookS);
+      beep(2400, 60);
+      if (tookS < 5) triggerOneShot(P_HEART, 2000);
+    } else if (resetOpen) {
+      beep(1800, 30);
+      resetSel = (resetSel + 1) % RESET_N;
+      resetConfirmIdx = 0xFF;
+    } else if (settingsOpen) {
+      beep(1800, 30);
+      settingsSel = (settingsSel + 1) % SETTINGS_N;
+    } else if (menuOpen) {
+      beep(1800, 30);
+      menuSel = (menuSel + 1) % MENU_N;
+    } else {
+      beep(1800, 30);
+      displayMode = (displayMode + 1) % DISP_COUNT;
+      applyDisplayMode();
     }
-    btnALong = false;
+  }
+  if (M5.BtnA.wasReleased()) {
     swallowBtnA = false;
   }
 
