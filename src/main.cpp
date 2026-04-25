@@ -98,8 +98,6 @@ static void applyBrightness() { M5.Display.setBrightness(20 + brightLevel * 20);
 static void wake() {
   lastInteractMs = millis();
   if (screenOff) {
-    M5.Display.setBrightness(100);
-    M5.Display.setBrightness(0);   
     applyBrightness();
     screenOff = false;
     wakeTransitionUntil = millis() + 12000;
